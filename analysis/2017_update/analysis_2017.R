@@ -1,21 +1,23 @@
 source("helpers_2017.R")
 
 # this script assumes that queries in queries_2017.sql have been run
+#
+# trips = query("
+#   SELECT * FROM daily_trips
+#   UNION
+#   SELECT * FROM daily_manhattan
+#   UNION
+#   SELECT * FROM daily_manhattan_hub
+#   UNION
+#   SELECT * FROM daily_airports
+#   UNION
+#   SELECT * FROM daily_outer_boroughs_ex_airports
+#   ORDER BY car_type, geo, date
+# ")
+#
+# write_csv(trips, "data/daily_trips_by_geography.csv")
 
-trips = query("
-  SELECT * FROM daily_trips
-  UNION
-  SELECT * FROM daily_manhattan
-  UNION
-  SELECT * FROM daily_manhattan_hub
-  UNION
-  SELECT * FROM daily_airports
-  UNION
-  SELECT * FROM daily_outer_boroughs_ex_airports
-  ORDER BY car_type, geo, date
-")
-
-write_csv(trips, "data/daily_trips_by_geography.csv")
+trips <- read_csv("data/daily_trips_by_geography.csv")
 
 # make sure to zero-pad when there are missing dates
 # so that rolling 28-day totals are correct

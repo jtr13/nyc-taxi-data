@@ -2,20 +2,20 @@ library(tidyverse)
 library(lubridate)
 library(scales)
 library(extrafont)
-library(RPostgreSQL)
+# library(RPostgreSQL)
 library(zoo)
 
-con = dbConnect(
-  dbDriver("PostgreSQL"),
-  dbname = "nyc-taxi-data",
-  host = "localhost"
-)
-
-query = function(sql) {
-  dbSendQuery(con, sql) %>%
-    fetch(n = 1e8) %>%
-    as_data_frame()
-}
+# con = dbConnect(
+#   dbDriver("PostgreSQL"),
+#   dbname = "nyc-taxi-data",
+#   host = "localhost"
+# )
+#
+# query = function(sql) {
+#   dbSendQuery(con, sql) %>%
+#     fetch(n = 1e8) %>%
+#     as_data_frame()
+# }
 
 yellow_hex = "#f7b731"
 green_hex = "#3f9e4d"
