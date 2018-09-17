@@ -26,57 +26,57 @@ date_seq = seq(
   as.Date("2017-12-31"),
   by = "1 day"
 )
-
-trips = trips %>%
-  group_by(car_type) %>%
-  complete(
-    date = date_seq,
-    geo = c("total", "manhattan", "manhattan_hub", "airports", "outer_boroughs_ex_airports"),
-    fill = list(trips = 0)
-  ) %>%
-  ungroup() %>%
-  filter(
-    date >= case_when(
-      car_type == "yellow" ~ as.Date("2009-01-01"),
-      car_type == "green" ~ as.Date("2013-08-01"),
-      car_type == "uber" ~ as.Date("2014-04-01"),
-      car_type %in% c("lyft", "via") ~ as.Date("2015-04-01"),
-      car_type == "juno" ~ as.Date("2016-03-01"),
-      car_type == "gett" ~ as.Date("2016-04-01"),
-      car_type == "other" ~ as.Date("2015-09-01")
-    )
-  ) %>%
-  filter(
-    case_when(
-      car_type == "uber" & date >= as.Date("2014-10-01") & date <= as.Date("2014-12-31") ~ FALSE,
-      TRUE ~ TRUE
-    )
-  ) %>%
-  mutate(
-    grouping = case_when(
-      car_type == "uber" & date < as.Date("2015-01-01") ~ "uber_2014",
-      TRUE ~ car_type
-    )
-  ) %>%
-  arrange(car_type, geo, date) %>%
-  group_by(car_type, grouping, geo) %>%
-  mutate(monthly = rollsumr(trips, k = 28, na.pad = TRUE)) %>%
-  ungroup() %>%
-  mutate(
-    car_type = factor(
-      car_type,
-      levels = c("yellow", "green", "uber", "lyft", "juno", "via", "other", "gett"),
-      labels = c("Yellow taxis", "Green taxis", "Uber", "Lyft", "Juno", "Via", "Non-app FHVs", "Gett")
-    ),
-    parent_type = factor(
-      case_when(
-        car_type %in% c("Yellow taxis", "Green taxis") ~ "Taxis",
-        car_type == "Non-app FHVs" ~ "Other",
-        TRUE ~ "Ride-hailing apps"
-      ),
-      levels = c("Taxis", "Ride-hailing apps", "Other")
-    )
-  )
+#
+# trips2 = trips %>%
+#   group_by(car_type) %>%
+#   complete(
+#     date = date_seq,
+#     geo = c("total", "manhattan", "manhattan_hub", "airports", "outer_boroughs_ex_airports"),
+#     fill = list(trips = 0)
+#   ) %>%
+#   ungroup() %>%
+#   filter(
+#     date >= case_when(
+#       car_type == "yellow" ~ as.Date("2009-01-01"),
+#       car_type == "green" ~ as.Date("2013-08-01"),
+#       car_type == "uber" ~ as.Date("2014-04-01"),
+#       car_type %in% c("lyft", "via") ~ as.Date("2015-04-01"),
+#       car_type == "juno" ~ as.Date("2016-03-01"),
+#       car_type == "gett" ~ as.Date("2016-04-01"),
+#       car_type == "other" ~ as.Date("2015-09-01")
+#     )
+#   ) %>%
+#   filter(
+#     case_when(
+#       car_type == "uber" & date >= as.Date("2014-10-01") & date <= as.Date("2014-12-31") ~ FALSE,
+#       TRUE ~ TRUE
+#     )
+#   ) %>%
+#   mutate(
+#     grouping = case_when(
+#       car_type == "uber" & date < as.Date("2015-01-01") ~ "uber_2014",
+#       TRUE ~ car_type
+#     )
+#   ) %>%
+#   arrange(car_type, geo, date) %>%
+#   group_by(car_type, grouping, geo) %>%
+#   mutate(monthly = rollsumr(trips, k = 28, na.pad = TRUE)) %>%
+#   ungroup() %>%
+#   mutate(
+#     car_type = factor(
+#       car_type,
+#       levels = c("yellow", "green", "uber", "lyft", "juno", "via", "other", "gett"),
+#       labels = c("Yellow taxis", "Green taxis", "Uber", "Lyft", "Juno", "Via", "Non-app FHVs", "Gett")
+#     ),
+#     parent_type = factor(
+#       case_when(
+#         car_type %in% c("Yellow taxis", "Green taxis") ~ "Taxis",
+#         car_type == "Non-app FHVs" ~ "Other",
+#         TRUE ~ "Ride-hailing apps"
+#       ),
+#       levels = c("Taxis", "Ride-hailing apps", "Other")
+#     )
+#   )
 
 # Juno and Gett do not report pickup geography
 # assume they follow same distribution as the average of Uber and Lyft
@@ -175,18 +175,20 @@ totals_by_parent_type_label_data = totals_by_parent_type %>%
     parent_type == "Taxis" ~ monthly - 2.2e6
   ))
 
-totals_by_parent_type_plot = totals_by_parent_type %>%
+
+# totals_by_parent_type_plot <-
+  totals_by_parent_type %>%
   ggplot(aes(x = date, y = monthly, color = parent_type, group = grouping)) +
-  geom_line(size = 1.5) +
+  geom_line() +
   geom_text(
     data = totals_by_parent_type_label_data,
     aes(y = yval, label = gsub(" ", "\n", parent_type)),
-    size = 9,
+ #   size = 9,
     lineheight = 0.7,
     family = "Open Sans"
   ) +
   scale_color_manual(values = c(yellow_hex, fhv_hex), guide = FALSE) +
-  scale_y_continuous(labels = unit_format("m", scale = 1e-6, sep = "")) +
+  scale_y_continuous(labels = unit_format("m", scale = 1e-6, sep = ""), limits = c(0, 20000000)) +
   scale_x_date(
     breaks = seq.Date(as.Date("2010-01-01"), as.Date("2018-01-01"), by = "2 years"),
     minor_breaks = NULL,
@@ -200,7 +202,7 @@ totals_by_parent_type_plot = totals_by_parent_type %>%
     sep = "\n"
   )) +
   expand_limits(y = c(0, 15e6), x = as.Date(c("2009-02-01", "2018-09-01"))) +
-  theme_tws(base_size = 36) +
+  theme_tws(base_size = 16) +
   no_axis_titles()
 
 
@@ -570,47 +572,6 @@ airports_by_parent_type_plot = airports_by_parent_type %>%
   no_axis_titles()
 
 
-png("graphs/totals_by_car_type.png", width = 800, height = 800)
-print(totals_by_car_type_plot)
-dev.off()
-
-png("graphs/totals_by_parent_type.png", width = 800, height = 800)
-print(totals_by_parent_type_plot)
-dev.off()
-
-png("graphs/manhattan_by_car_type.png", width = 800, height = 800)
-print(manhattan_by_car_type_plot)
-dev.off()
-
-png("graphs/manhattan_by_parent_type.png", width = 800, height = 800)
-print(manhattan_by_parent_type_plot)
-dev.off()
-
-png("graphs/manhattan_cbd_by_car_type.png", width = 800, height = 800)
-print(manhattan_cbd_by_car_type_plot)
-dev.off()
-
-png("graphs/manhattan_cbd_by_parent_type.png", width = 800, height = 800)
-print(manhattan_cbd_by_parent_type_plot)
-dev.off()
-
-png("graphs/outer_boroughs_by_car_type.png", width = 800, height = 800)
-print(outer_boroughs_by_car_type_plot)
-dev.off()
-
-png("graphs/outer_boroughs_by_parent_type.png", width = 800, height = 800)
-print(outer_boroughs_by_parent_type_plot)
-dev.off()
-
-png("graphs/airports_by_car_type.png", width = 800, height = 800)
-print(airports_by_car_type_plot)
-dev.off()
-
-png("graphs/airports_by_parent_type.png", width = 800, height = 800)
-print(airports_by_parent_type_plot)
-dev.off()
-
-
 
 # ride-hailing market share
 ridehail_trips = trips %>%
@@ -662,9 +623,8 @@ ridehail_market_share = ridehail_trips %>%
   theme(plot.title = element_text(size = rel(1.1))) +
   no_axis_titles()
 
-png("graphs/ridehail_market_share.png", width = 800, height = 800)
-print(ridehail_market_share)
-dev.off()
+
+
 
 # Uber and Lyft weeks with biggest INCREASE in ride-hailing market share
 ridehail_trips %>%
@@ -694,27 +654,8 @@ ridehail_trips %>%
 
 
 # JFK protest Jan 28, 2017
-jfk_hourly_pickups = query("
-  SELECT * FROM (
-    SELECT
-      'yellow'::text AS car_type,
-      pickup_hour,
-      trips
-    FROM jfk_hourly_pickups_taxi
-    WHERE cab_type_id = 1
-  UNION
-    SELECT
-      dba_category,
-      pickup_hour,
-      trips
-    FROM jfk_hourly_pickups_fhv
-    WHERE dba_category = 'uber'
-  ) q
-  WHERE pickup_hour BETWEEN '2016-12-01' AND '2017-03-31'
-  ORDER BY car_type, pickup_hour
-")
 
-write_csv(jfk_hourly_pickups, "data/jfk_hourly_pickups.csv")
+jfk_hourly_pickups <- read_csv("data/jfk_hourly_pickups.csv")
 
 protest_hour = as.POSIXct("2017-01-28 18:00:00")
 
@@ -745,98 +686,29 @@ jfk_hourly = jfk_hourly_pickups %>%
   theme_tws(base_size = 36) +
   no_axis_titles()
 
-png("graphs/jfk_hourly_pickups.png", width = 800, height = 800)
-print(jfk_hourly)
-dev.off()
+jfk_hourly
 
-election = query("
-  SELECT
-    e.*,
-    ul.lyft_share_2016,
-    ul.pre_strike_lyft_share,
-    ul.post_strike_lyft_share,
-    ul.rest_of_2017_lyft_share,
-    ul.lyft_share_change
-  FROM uber_vs_lyft_carto_data ul, election_results_by_taxi_zone e
-  WHERE ul.locationid = e.locationid
-    AND e.estimated_total_votes > 1000
-")
 
-summary(lm(lyft_share_change ~ clinton, data = election))
-# Call:
-# lm(formula = lyft_share_change ~ clinton, data = election)
-#
-# Residuals:
-#      Min       1Q   Median       3Q      Max
-# -0.05649 -0.02151 -0.00854  0.01503  0.10695
-#
-# Coefficients:
-#              Estimate Std. Error t value Pr(>|t|)
-# (Intercept) -0.001073   0.008925  -0.120    0.904
-# clinton      0.062076   0.011152   5.567 7.13e-08 ***
-# ---
-# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-#
-# Residual standard error: 0.03262 on 233 degrees of freedom
-# Multiple R-squared:  0.1174,  Adjusted R-squared:  0.1136
-# F-statistic: 30.99 on 1 and 233 DF,  p-value: 7.126e-08
 
-summary(lm(lyft_share_change ~ stein, data = election))
-# Call:
-# lm(formula = lyft_share_change ~ stein, data = election)
-#
-# Residuals:
-#       Min        1Q    Median        3Q       Max
-# -0.058317 -0.019047 -0.001654  0.012641  0.101557
-#
-# Coefficients:
-#              Estimate Std. Error t value Pr(>|t|)
-# (Intercept) -0.014323   0.005718  -2.505   0.0129 *
-# stein        4.635190   0.408649  11.343   <2e-16 ***
-# ---
-# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-#
-# Residual standard error: 0.02787 on 233 degrees of freedom
-# Multiple R-squared:  0.3557,  Adjusted R-squared:  0.353
-# F-statistic: 128.7 on 1 and 233 DF,  p-value: < 2.2e-16
+totals_by_car_type_plot
 
-clinton = election %>%
-  ggplot(aes(x = clinton, y = lyft_share_change)) +
-  geom_point(size = 4, alpha = 0.7) +
-  scale_x_continuous("Clinton vote %", labels = percent) +
-  scale_y_continuous("Lyft market share increase", labels = percent) +
-  expand_limits(x = c(0.1, 1)) +
-  ggtitle("Lyft Usage vs. Clinton Vote %") +
-  labs(caption = paste(
-    "Market share calculated as percentage of (Uber + Lyft) in each taxi zone",
-    "Increase measured from month ending 1/28/17 to week ending 2/4/17",
-    "Data via NYC TLC and NYC Board of Elections",
-    "toddwschneider.com",
-    sep = "\n"
-  )) +
-  theme_tws(base_size = 36) +
-  theme(axis.title = element_text(size = rel(0.7)))
+totals_by_parent_type_plot
 
-stein = election %>%
-  ggplot(aes(x = stein, y = lyft_share_change)) +
-  geom_point(size = 4, alpha = 0.7) +
-  scale_x_continuous("Jill Stein vote %", labels = percent) +
-  scale_y_continuous("Lyft market share increase", labels = percent) +
-  ggtitle("Lyft Usage vs. Jill Stein Vote %") +
-  labs(caption = paste(
-    "Market share calculated as percentage of (Uber + Lyft) in each taxi zone",
-    "Increase measured from month ending 1/28/17 to week ending 2/4/17",
-    "Data via NYC TLC and NYC Board of Elections",
-    "toddwschneider.com",
-    sep = "\n"
-  )) +
-  theme_tws(base_size = 36) +
-  theme(axis.title = element_text(size = rel(0.7)))
+manhattan_by_car_type_plot
 
-png("graphs/lyft_vs_clinton.png", width = 800, height = 800)
-print(clinton)
-dev.off()
+manhattan_by_parent_type_plot
 
-png("graphs/lyft_vs_jill_stein.png", width = 800, height = 800)
-print(stein)
-dev.off()
+manhattan_cbd_by_car_type_plot
+
+manhattan_cbd_by_parent_type_plot
+
+outer_boroughs_by_car_type_plot
+
+outer_boroughs_by_parent_type_plot
+
+airports_by_car_type_plot
+
+airports_by_parent_type_plot
+
+ridehail_market_share
+
